@@ -1,50 +1,76 @@
 {
   "watchlist": ["BTCUSDT"],
-  "default_timeframe": "1m",
+  "default_timeframe": "4H",
 
   "strategy": {
-    "name": "VWAP + RSI(3) + EMA(8) Scalping Strategy",
-    "sources": ["Lewis Jackson"],
-    "description": "Three indicators, each doing a different job. EMA(8) for trend direction, VWAP for session bias, RSI(3) for entry timing. All three must align before a trade fires."
+    "name": "DaviddTech NNFX Trend System",
+    "sources": ["DaviddTech (@DaviddTech) — youtube.com/@DaviddTech"],
+    "description": "NNFX-based trend following system. Baseline sets direction, MACD confirms momentum, ADX filters out choppy markets, ATR bands define exits. All components must align. Never trade a single indicator alone."
   },
 
   "indicators": {
-    "ema_8": "Trend direction. Price above EMA(8) = bullish momentum. Below = bearish.",
-    "vwap": "Session bias. Price above VWAP = buyers in control. Below = sellers. Resets at midnight UTC.",
-    "rsi_3": "Entry timing. RSI on 3 candles only — extremely sensitive. Below 30 in an uptrend = snap-back setup. Above 70 in a downtrend = reversal likely."
+    "ema_8": "Baseline — fast trend direction. Price above EMA(8) = bullish momentum. Below = bearish. Acts as the NNFX baseline equivalent.",
+    "ema_21": "Slow trend confirmation. Price above EMA(21) = sustained uptrend. Both EMAs must align for a valid bias.",
+    "macd": "Entry confirmation — MACD line crossing above signal = bullish momentum confirmed. Crossing below = bearish. Zero-lag version preferred per DaviddTech.",
+    "rsi_14": "Market regime filter. RSI between 40-60 = choppy/ranging market — avoid entries. Above 60 = trending up, below 40 = trending down.",
+    "vwap": "Session bias. Price above VWAP = institutional buyers in control. Below = sellers. Resets at midnight UTC.",
+    "adx": "Choppiness filter — DaviddTech's most consistent rule: ADX below 25 = ranging market, skip all trades. ADX above 25 = trending, allow entries.",
+    "atr": "Exit engine — stop loss at 1.5x ATR below entry (longs) or above entry (shorts). Take profit at 2x ATR. Adapts to current volatility."
   },
 
   "bias_criteria": {
-    "bullish": ["Price is above VWAP", "Price is above EMA(8)"],
-    "bearish": ["Price is below VWAP", "Price is below EMA(8)"]
+    "bullish": [
+      "Price is above EMA(8)",
+      "Price is above EMA(21)",
+      "Price is above VWAP"
+    ],
+    "bearish": [
+      "Price is below EMA(8)",
+      "Price is below EMA(21)",
+      "Price is below VWAP"
+    ],
+    "neutral": [
+      "EMA(8) and EMA(21) are within 0.1% of each other — no clear trend",
+      "Price is between EMA(8) and EMA(21) — transition zone, avoid"
+    ]
   },
 
   "entry_rules": {
     "long": [
-      "Price is above VWAP — buyers in control for the session",
-      "Price is above EMA(8) — uptrend confirmed",
-      "RSI(3) has dropped below 30 — short-term pullback in an uptrend, snap-back likely"
+      "Market bias is bullish — price above both EMA(8) and EMA(21) and VWAP",
+      "ADX is above 25 — market is trending, not choppy",
+      "MACD line has crossed above the signal line — momentum confirmed bullish",
+      "MACD histogram is positive and expanding — momentum is accelerating, not fading",
+      "RSI(14) is above 50 but below 70 — trending up without being overbought",
+      "Price is within 2% of VWAP — not overextended from session fair value"
     ],
     "short": [
-      "Price is below VWAP — sellers in control",
-      "Price is below EMA(8) — downtrend confirmed",
-      "RSI(3) has spiked above 70 — overbought in a downtrend, reversal likely"
+      "Market bias is bearish — price below both EMA(8) and EMA(21) and VWAP",
+      "ADX is above 25 — market is trending, not choppy",
+      "MACD line has crossed below the signal line — momentum confirmed bearish",
+      "MACD histogram is negative and expanding — momentum is accelerating downward",
+      "RSI(14) is below 50 but above 30 — trending down without being oversold",
+      "Price is within 2% of VWAP — not overextended from session fair value"
     ]
   },
 
   "exit_rules": [
-    "Exit when RSI(3) crosses back above 50 (for longs) or below 50 (for shorts)",
-    "Hard stop: 0.3% below entry for longs, 0.3% above entry for shorts",
-    "Take profit at next VWAP touch or EMA(8) cross"
+    "Stop loss: 1.5x ATR from entry — hard stop, no exceptions",
+    "Take profit: 2x ATR from entry — minimum 1.33 reward-to-risk ratio",
+    "Exit immediately if MACD crosses back against trade direction",
+    "Exit if ADX drops below 20 — trend is dying, protect gains",
+    "Trail stop to breakeven once trade reaches 1x ATR profit"
   ],
 
   "risk_rules": [
-    "Risk maximum 1% of portfolio per trade",
+    "Risk maximum 1% of portfolio per trade — position size calculated from ATR stop distance",
     "Maximum trade size capped by MAX_TRADE_SIZE_USD in .env",
     "Maximum trades per day capped by MAX_TRADES_PER_DAY in .env",
-    "Do not trade if price is more than 1.5% away from VWAP — overextended",
-    "Paper trade first — validate this strategy on your specific asset before going live"
+    "ADX below 25 = no trades, regardless of other signals — DaviddTech's #1 rule",
+    "Do not trade if RSI(14) is above 70 (overbought) for longs or below 30 (oversold) for shorts",
+    "Diversify across pairs — do not concentrate all trades in one asset",
+    "Paper trade for minimum 2 weeks before going live — validate forward performance"
   ],
 
-  "notes": "Scalping strategy — designed for 1m to 5m timeframes. RSI(3) is intentionally fast and sensitive. Do not apply to higher timeframes."
+  "notes": "Extracted from 30 DaviddTech videos. Core philosophy: data over emotion, always backtest before live trading, never trust a single indicator. The ADX filter is his most repeated rule — if the market is choppy, stay out. Strategy designed for 4H timeframe. Scales to 1H. Not suitable for sub-15min timeframes. Indicators used in the bot: EMA(8), EMA(21), MACD, RSI(14), VWAP, ATR — all calculable from raw candle data."
 }
